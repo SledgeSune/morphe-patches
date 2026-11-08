@@ -3,7 +3,7 @@ group = "app.sledgesune"
 patches {
     about {
         name = "SledgeSune Patches"
-        description = "Morphe patches for Sync.ME"
+        description = "Personal Morphe patches. Made by AI (Claude), personal use only."
         source = "git@github.com:SledgeSune/morphe-patches.git"
         author = "SledgeSune"
         contact = "na"
