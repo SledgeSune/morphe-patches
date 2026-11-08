@@ -4,15 +4,15 @@ Template repository for Morphe Patches.
 
 ## ❓ About
 
-Patches for apps I like.
+Morphe patches for Sync.ME: remove ads, upgrade prompts, app promotions and tracking.
 
 <!-- TODO: Update this about section with a brief introduction/summary about this repo and what it offers. -->
 
 ### How to use these patches
 
-Click the button below, or manually add this repo url to Morphe Manager: https://github.com/xyz-user/xyz-patches
+Click the button below, or manually add this repo url to Morphe Manager: https://github.com/SledgeSune/morphe-patches
 
-<a href="https://morphe.software/add-source?github=xyz-user/xyz-patches">
+<a href="https://morphe.software/add-source?github=SledgeSune/morphe-patches">
   <img src=".github/assets/add-to-morphe.svg" alt="Add to Morphe" height="48">
 </a>
 
@@ -100,4 +100,4 @@ See the [Morphe documentation](https://github.com/MorpheApp/morphe-documentation
 
 ## 📜 License
 
-UserXYZ Patches are licensed under the [GNU General Public License v3.0](LICENSE)
+SledgeSune Patches are licensed under the [GNU General Public License v3.0](LICENSE)
