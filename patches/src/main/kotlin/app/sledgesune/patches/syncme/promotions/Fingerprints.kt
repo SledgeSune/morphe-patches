@@ -1,6 +1,42 @@
 package app.sledgesune.patches.syncme.promotions
 
 import app.morphe.patcher.Fingerprint
+import app.morphe.patcher.fieldAccess
+import app.morphe.patcher.methodCall
+import app.morphe.patcher.string
+
+internal const val REGISTRATION_ACTIVITY =
+    "Lcom/syncme/activities/registration/registration_activity/RegistrationActivity;"
+
+/**
+ * RegistrationActivity.showOnboardingPaywall() (obfuscated, e.g. `Z1()V` in 4.71.2.1).
+ * Opens the "Go Pro" BillingActivity or the trial screen at the end of onboarding.
+ */
+object ShowOnboardingPaywallFingerprint : Fingerprint(
+    definingClass = REGISTRATION_ACTIVITY,
+    returnType = "V",
+    parameters = listOf(),
+    filters = listOf(
+        string("the trial screen"),
+    )
+)
+
+/**
+ * RegistrationActivity.completeOnboarding() (obfuscated, e.g. `Y1()V` in 4.71.2.1).
+ * Logs onboarding_complete and opens MainActivity. This is what runs when the paywall is disabled.
+ */
+object CompleteOnboardingFingerprint : Fingerprint(
+    definingClass = REGISTRATION_ACTIVITY,
+    returnType = "V",
+    parameters = listOf(),
+    filters = listOf(
+        fieldAccess(
+            definingClass = "Lcom/syncme/utils/analytics/EventToProvider;",
+            name = "onboarding_complete",
+        ),
+        methodCall(name = "startActivity"),
+    )
+)
 
 // These classes keep their real names in the release build, so they can be matched directly.
 

@@ -14,8 +14,8 @@ private const val EXTENSION_CLASS = "Lapp/sledgesune/extension/syncme/HideUpgrad
 @Suppress("unused")
 val hideUpgradePromptsPatch = patch(
     name = "Hide upgrade prompts",
-    description = "Hides Premium sales banners, the Premium sheet after SMS, " +
-        "Premium promo notifications and upgrade banners in the call history.",
+    description = "Skips the \"Go Pro\" screen after sign-up and hides Premium sales banners, " +
+        "the Premium sheet after SMS, Premium promo notifications and upgrade banners in the call history.",
     default = true
 ) {
     compatibleWith(COMPATIBILITY_SYNCME)
@@ -23,6 +23,16 @@ val hideUpgradePromptsPatch = patch(
     extendWith("extensions/extension.mpe")
 
     execute {
+        // End of onboarding: go straight to the app instead of the "Go Pro" / trial screen.
+        val completeOnboarding = CompleteOnboardingFingerprint.method
+        ShowOnboardingPaywallFingerprint.method.addInstructions(
+            0,
+            """
+                invoke-virtual { p0 }, $REGISTRATION_ACTIVITY->${completeOnboarding.name}()V
+                return-void
+            """
+        )
+
         // No active sale campaign.
         GetActivePromotionFingerprint.method.addInstructions(
             0,
