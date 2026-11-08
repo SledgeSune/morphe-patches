@@ -21,14 +21,27 @@ Or add `https://github.com/SledgeSune/morphe-patches` as a patch source in Morph
 ## Patches
 
 <!-- PATCHES_START EXPANDED -->
+> **[v1.0.0](https://github.com/SledgeSune/morphe-patches/releases/tag/v1.0.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;5 patches total
+<details open>
+<summary>📦 Sync.ME&nbsp;&nbsp;•&nbsp;&nbsp;5 patches</summary>
+<br>
 
-| App | Patch | What it does |
-|---|---|---|
-| Sync.ME | Hide ads | Removes all ads. |
-| Sync.ME | Hide upgrade prompts | Skips the "Go Pro" screen and hides Premium banners, sheets and promo notifications. |
-| Sync.ME | Skip app promotions | Removes the "free gift" card and banners for other apps. |
-| Sync.ME | Keep navigation bar | Stops the app from hiding the phone's navigation bar. |
-| Sync.ME | Disable tracking | Stops analytics sent to Firebase, Mixpanel, Singular and Facebook. |
+**Package name:** `com.syncme.syncmeapp`
+
+**🎯 Supported versions:**
+
+| 4.71.2.1 |
+| :---: |
+
+| 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
+|----------|----------------|-----------|
+| [Disable tracking](#disable-tracking) | Stops usage analytics from being sent to Firebase, Mixpanel, Singular and Facebook. |  |
+| [Hide ads](#hide-ads) | Removes all ads (banners, native, interstitial and app-open ads), the same way the "No Ads" purchase does. Other Premium features stay locked. |  |
+| [Hide upgrade prompts](#hide-upgrade-prompts) | Skips the "Go Pro" screen after sign-up and hides Premium sales banners, the Premium sheet after SMS, Premium promo notifications and upgrade banners in the call history. |  |
+| [Keep navigation bar](#keep-navigation-bar) | Stops "aggressive mode" from hiding the phone's navigation bar. |  |
+| [Skip app promotions](#skip-app-promotions) | Removes the "free gift" card after calls and banners promoting other apps. |  |
+
+</details>
 
 <!-- PATCHES_END -->
 
