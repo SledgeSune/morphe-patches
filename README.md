@@ -12,6 +12,12 @@
 
 My collection of [Morphe](https://github.com/MorpheApp) patches. Any patch I make goes here.
 
+<a href="https://morphe.software/add-source?github=SledgeSune/morphe-patches">
+  <img src=".github/assets/add-to-morphe.svg" alt="Add to Morphe" height="48">
+</a>
+
+Or add `https://github.com/SledgeSune/morphe-patches` as a patch source in Morphe Manager.
+
 ## Patches
 
 <!-- PATCHES_START EXPANDED -->
