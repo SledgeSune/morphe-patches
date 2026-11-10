@@ -8,6 +8,9 @@ description: Write a new Morphe patch in this repo for an Android app (APK or AP
 This repo is a personal Morphe patch bundle built from MorpheApp's patches template.
 Everything in it is written by Claude; the README says so. Keep that warning.
 
+Read `HANDOFF.md` first (existing hooks per app, open issues). When the patch is done, add a row for it
+to section 4 of `HANDOFF.md` (see the `morphe-handoff` skill).
+
 ## Ground rules
 
 - **No paywall bypasses.** Never patch an app to unlock paid features or get around a purchase.

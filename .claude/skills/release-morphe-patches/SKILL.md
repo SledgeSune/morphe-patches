@@ -78,3 +78,5 @@ NOTES=<scratchpad>/release-notes.md          # never inside the repo or its pare
 - The repo must stay **public**: Morphe Manager can't read private repos.
 - Releases aren't signed (no `MORPHE_SIGNING_KEY`), so `signature_download_url` stays empty.
 - Tell the user which patches are in the release and which were never tested on a phone.
+- Afterwards update `HANDOFF.md` (latest release, branch state, session log) and commit it on `dev`
+  with a `chore:` message, then fast-forward nothing — `main` catches up at the next release.
