@@ -15,7 +15,7 @@ Update this file at the end of every session (`morphe-handoff` skill).
 |---|---|
 | Repo | https://github.com/SledgeSune/morphe-patches (`dev` = work, `main` = releases) |
 | Local checkout | `C:\Programs\Claude\Morphe-Patches\morphe-patches` (template reference clone next to it) |
-| Latest release | **v1.2.0** (2026-11-11), 7 patches. v1.1.0 (2026-11-10), v1.0.0 (2026-11-08) |
+| Latest release | **v1.3.0** (2026-11-11), 9 patches. v1.2.0 and v1.1.0 (Trip history), v1.0.0 (2026-11-08) |
 | Add to Morphe | `https://morphe.software/add-source?github=SledgeSune/morphe-patches` |
 | Tested APKs | APKMirror `.apkm`: Waze 5.27.4.900 (in the parent folder), Sync.ME 4.71.2.1 (kept outside the repo) |
 | Tools | JDK 21 (Temurin), Android SDK + dexdump, jadx 1.5.6 (GUI jar only: `java -cp <jar> jadx.cli.JadxCLI`), Python 3.14, `gh` signed in as SledgeSune |
@@ -70,5 +70,5 @@ Compared with Forsigh/waze-patches (GPLv3, 2026-11-11): their patches only fake 
   side-menu list, GPS distance, waze.com session via the history page. Not released; test bundle sent.
   Owner tested it: drives recorded well. Then: Inbox-style screen, 2 km minimum, waze.com merge dropped in favour
   of opening Waze's own drive-history page signed in. Owner approved the list; released as v1.2.0.
-- **2026-11-11** — Reviewed Forsigh/waze-patches; added "Keep Waze alive" and "Remove ads" (not released, test
-  bundle sent). Lead for trip history: `libwaze.so` contains `https://www.waze.com/_user/trips/`.
+- **2026-11-11** — Reviewed Forsigh/waze-patches; added "Keep Waze alive" and "Remove ads"; owner approved, released as v1.3.0 (no phone test
+  reported yet). Lead for trip history: `libwaze.so` contains `https://www.waze.com/_user/trips/`.
