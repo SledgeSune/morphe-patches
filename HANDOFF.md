@@ -15,7 +15,7 @@ Update this file at the end of every session (`morphe-handoff` skill).
 |---|---|
 | Repo | https://github.com/SledgeSune/morphe-patches (`dev` = work, `main` = releases) |
 | Local checkout | `C:\Programs\Claude\Morphe-Patches\morphe-patches` (template reference clone next to it) |
-| Latest release | **v1.2.0** (2026-11-11, tag + main pushed; GitHub release page pending, see Open issues), 7 patches. v1.1.0 (2026-11-10), v1.0.0 (2026-11-08) |
+| Latest release | **v1.2.0** (2026-11-11), 7 patches. v1.1.0 (2026-11-10), v1.0.0 (2026-11-08) |
 | Add to Morphe | `https://morphe.software/add-source?github=SledgeSune/morphe-patches` |
 | Tested APKs | APKMirror `.apkm`: Waze 5.27.4.900 (in the parent folder), Sync.ME 4.71.2.1 (kept outside the repo) |
 | Tools | JDK 21 (Temurin), Android SDK + dexdump, jadx 1.5.6 (GUI jar only: `java -cp <jar> jadx.cli.JadxCLI`), Python 3.14, `gh` signed in as SledgeSune |
@@ -48,8 +48,7 @@ Obfuscated names are for the tested version only; fingerprints don't depend on t
 1. **GitHub Actions blocked** by a billing lock on GitHub's side (account is Free, nothing owed). Owner was told to
    open a ticket at support.github.com. Release by hand until `gh run list -R SledgeSune/morphe-patches --limit 3` succeeds.
 2. **Only "Hide ads" is confirmed** on a phone. Ask the owner about the others before building on them.
-3. **v1.2.0 GitHub release page not created** (the publish command was blocked by a permission check). Tag and `patches-bundle.json` on `main` already point to it, so Morphe Manager downloads fail until it exists: `gh release create v1.2.0 -R SledgeSune/morphe-patches --title v1.2.0 --notes-file <notes> --verify-tag patches/build/libs/patches-1.2.0.mpp`.
-4. Issues are still enabled on the repo although the owner offers no support.
+3. Issues are still enabled on the repo although the owner offers no support.
 
 ## Ideas not started
 
