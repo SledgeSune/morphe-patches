@@ -1,3 +1,10 @@
+## [1.3.0](https://github.com/SledgeSune/morphe-patches/compare/v1.2.0...v1.3.0) (2026-11-11)
+
+### ✨ New Features
+
+* **Waze:** Add "Keep Waze alive" patch ([1fe1f9e](https://github.com/SledgeSune/morphe-patches/commit/1fe1f9e68d0d9a9ac68ff0aa32e3f657efc35b2b))
+* **Waze:** Add "Remove ads" patch ([402806b](https://github.com/SledgeSune/morphe-patches/commit/402806b1601d3ca91e87242981804a1891261326))
+
 ## [1.2.0](https://github.com/SledgeSune/morphe-patches/compare/v1.1.0...v1.2.0) (2026-11-11)
 
 ### ✨ New Features
