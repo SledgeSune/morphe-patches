@@ -1,6 +1,6 @@
 {
   "NOTE": "Do NOT manually edit this file. This file is automatically updated when semantic release (release.yml) runs. Manually editing this file can break your releases and break third party tools that use this file.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "patches": [
     {
       "name": "Disable reroute auto-accept",
@@ -208,7 +208,7 @@
     },
     {
       "name": "Trip history",
-      "description": "Shows the start and end time of each drive under Settings > Privacy > Navigation history. Uses the drive list from Waze's servers, and trips recorded on the phone when not signed in.",
+      "description": "Records how long each drive took and how far you drove. Shows it next to each place under Recent in \"Where to?\", and lists all drives under \"Trip history\" in the side menu.",
       "default": true,
       "category": null,
       "compatiblePackages": [

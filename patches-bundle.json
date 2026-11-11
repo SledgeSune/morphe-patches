@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-11-10T13:54:49",
-  "description": "## [1.1.0](https://github.com/SledgeSune/morphe-patches/compare/v1.0.0...v1.1.0) (2026-11-10)\n\n### ✨ New Features\n\n* **Waze:** Add \"Trip history\" patch ([05b0531](https://github.com/SledgeSune/morphe-patches/commit/05b05312c2a701de0f6c913a09f70224a4e9e965))\n* **Waze:** Add \"Disable reroute auto-accept\" patch ([6d8accd](https://github.com/SledgeSune/morphe-patches/commit/6d8accdce2c4e862592fcdec2a913881169b2d57))\n",
-  "download_url": "https://github.com/SledgeSune/morphe-patches/releases/download/v1.1.0/patches-1.1.0.mpp",
+  "created_at": "2026-11-11T11:09:52",
+  "description": "## [1.2.0](https://github.com/SledgeSune/morphe-patches/compare/v1.1.0...v1.2.0) (2026-11-11)\n\n### ✨ New Features\n\n* **Waze:** \"Trip history\" shows each drive's duration and distance in Recent, and lists all drives in the side menu ([96f53ff](https://github.com/SledgeSune/morphe-patches/commit/96f53ff03c21ff2c8220a08de83dff248c87f23e))\n\n### 🐛 Bug Fixes\n\n* **Waze:** Trip history list styled like Inbox, ignores drives under 2 km, opens Waze's own drive history page ([e57dc22](https://github.com/SledgeSune/morphe-patches/commit/e57dc225350ca6f806381f4e3490d6a6c4ba5c73))\n",
+  "download_url": "https://github.com/SledgeSune/morphe-patches/releases/download/v1.2.0/patches-1.2.0.mpp",
   "signature_download_url": "",
-  "version": "1.1.0"
+  "version": "1.2.0"
 }
