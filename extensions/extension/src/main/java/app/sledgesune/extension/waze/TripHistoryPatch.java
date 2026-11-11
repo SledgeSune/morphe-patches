@@ -2,7 +2,6 @@ package app.sledgesune.extension.waze;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Application;
 import android.app.Dialog;
 import android.content.ClipData;
@@ -13,6 +12,8 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -20,17 +21,22 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowManager;
 import android.webkit.CookieManager;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.BaseAdapter;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -39,15 +45,11 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,7 +58,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Trip history for Waze: how long each drive took and how far it went.
@@ -81,18 +82,15 @@ public final class TripHistoryPatch {
     private static final int MAX_TRIPS = 2000;
     private static final long SAVE_INTERVAL_MS = 60_000;
 
-    /** Shorter or shorter-distance "drives" are route previews or false starts, not drives. */
-    private static final long MIN_TRIP_MS = 60_000;
-    private static final int MIN_TRIP_METERS = 200;
+    /**
+     * Shorter "drives" are route previews, traffic checks or false starts, not drives. Distance is the main test
+     * (a traffic check can run for many minutes without moving); time only matters when distance is unknown.
+     */
+    private static final long MIN_TRIP_MS = 3 * 60_000;
+    private static final int MIN_TRIP_METERS = 2000;
 
     /** Two places are the same if both coordinates are this close (micro-degrees, about 150 m). */
     private static final int SAME_PLACE_MICRODEGREES = 1500;
-
-    private static final String WAZE_WEB = "https://www.waze.com";
-    /** Server environments: rest of world, North America, Israel. An account has drives in one of them. */
-    private static final String[] ENVIRONMENTS = {"row-", "", "il-"};
-    private static final int PAGE_SIZE = 50;
-    private static final int MAX_PAGES = 40;
 
     private static volatile Application application;
     private static volatile WeakReference<Activity> currentActivity = new WeakReference<>(null);
@@ -143,7 +141,10 @@ public final class TripHistoryPatch {
         int lon = Integer.MIN_VALUE;
         /** The app was closed mid-drive; the end is the last moment it was seen running. */
         boolean endEstimated;
-        boolean online;
+
+        boolean isTooShort() {
+            return meters >= 0 ? meters < MIN_TRIP_METERS : end - start < MIN_TRIP_MS;
+        }
 
         @Override
         public int compareTo(Trip other) {
@@ -412,8 +413,7 @@ public final class TripHistoryPatch {
         }
 
         SharedPreferences.Editor editor = prefs().edit().remove(KEY_OPEN);
-        boolean tooShort = trip.end - trip.start < MIN_TRIP_MS || (trip.meters >= 0 && trip.meters < MIN_TRIP_METERS);
-        if (!tooShort) {
+        if (!trip.isTooShort()) {
             List<Trip> trips = new ArrayList<>(loadTrips());
             trips.add(trip);
             Collections.sort(trips);
@@ -433,7 +433,11 @@ public final class TripHistoryPatch {
             List<Trip> trips = new ArrayList<>();
             try {
                 JSONArray array = new JSONArray(prefs().getString(KEY_TRIPS, "[]"));
-                for (int i = 0; i < array.length(); i++) trips.add(Trip.fromJson(array.getJSONObject(i)));
+                for (int i = 0; i < array.length(); i++) {
+                    // Also hides drives saved under the older, lower thresholds.
+                    Trip trip = Trip.fromJson(array.getJSONObject(i));
+                    if (!trip.isTooShort()) trips.add(trip);
+                }
             } catch (Throwable t) {
                 Log.w(TAG, "Could not read saved trips", t);
             }
@@ -660,20 +664,15 @@ public final class TripHistoryPatch {
 
     // endregion
 
-    // region waze.com drive list
+    // region Waze's own drive history page
 
-    private static final class OnlineResult {
-        final List<Trip> trips = new ArrayList<>();
-        boolean signedIn;
-        boolean failed;
-    }
-
+    /** The app's X-Waze-Mobile-* headers; Waze's own web pages sign in with these, not with a web login. */
     @SuppressWarnings("unchecked")
-    private static Map<String, String> webHeaders() {
+    private static Map<String, String> webHeaders(int width, int height) {
         try {
             Method method = Class.forName(webHeadersClass()).getDeclaredMethod(webHeadersMethod(), int.class, int.class);
             method.setAccessible(true);
-            return (Map<String, String>) method.invoke(null, 0, 0);
+            return (Map<String, String>) method.invoke(null, width, height);
         } catch (Throwable t) {
             Log.w(TAG, "Could not get the app's web headers", t);
             return new HashMap<>();
@@ -699,155 +698,36 @@ public final class TripHistoryPatch {
         return null;
     }
 
-    /**
-     * Opens Waze's own Navigation history page off-screen with the app's headers, the way the app does, so
-     * waze.com sets its session cookies. Then calls back on the UI thread (also after a timeout).
-     */
-    private static void openWebSession(Activity activity, Map<String, String> headers, Runnable then) {
-        String url = historyPageUrl();
-        if (url == null) {
-            then.run();
-            return;
-        }
-        final AtomicBoolean done = new AtomicBoolean();
-        final WebView webView = new WebView(activity);
-        final Runnable finish = () -> {
-            if (!done.compareAndSet(false, true)) return;
-            CookieManager.getInstance().flush();
-            webView.destroy();
-            then.run();
-        };
-        webView.getSettings().setJavaScriptEnabled(true);
-        webView.getSettings().setDomStorageEnabled(true);
-        CookieManager.getInstance().setAcceptCookie(true);
-        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onPageFinished(WebView view, String finishedUrl) {
-                // Give the page's own scripts a moment to finish signing in.
-                new Handler(Looper.getMainLooper()).postDelayed(finish, 1500);
-            }
-        });
-        webView.loadUrl(url, headers);
-        new Handler(Looper.getMainLooper()).postDelayed(finish, 15_000);
-    }
-
-    private static OnlineResult fetchOnlineTrips(Map<String, String> headers) {
-        OnlineResult result = new OnlineResult();
-        String cookies = null;
-        String userAgent = null;
-        try {
-            cookies = CookieManager.getInstance().getCookie(WAZE_WEB);
-            userAgent = WebSettings.getDefaultUserAgent(application);
-        } catch (Throwable t) {
-            Log.w(TAG, "WebView not available", t);
-        }
-
-        for (String environment : ENVIRONMENTS) {
-            try {
-                for (int page = 0; page < MAX_PAGES; page++) {
-                    String url = WAZE_WEB + "/" + environment + "Descartes/app/Archive/List?minDistance=0&offset="
-                            + (page * PAGE_SIZE) + "&count=" + PAGE_SIZE;
-                    HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-                    connection.setConnectTimeout(15_000);
-                    connection.setReadTimeout(20_000);
-                    connection.setInstanceFollowRedirects(false);
-                    connection.setRequestProperty("Accept", "application/json");
-                    if (userAgent != null) connection.setRequestProperty("User-Agent", userAgent);
-                    if (cookies != null && !cookies.isEmpty()) connection.setRequestProperty("Cookie", cookies);
-                    for (Map.Entry<String, String> header : headers.entrySet()) {
-                        if (header.getKey() != null && header.getValue() != null) {
-                            connection.setRequestProperty(header.getKey(), header.getValue());
-                        }
-                    }
-
-                    int status = connection.getResponseCode();
-                    if (status != 200) {
-                        Log.i(TAG, "Drive list " + environment + ": HTTP " + status);
-                        connection.disconnect();
-                        break; // 403 = not signed in on this environment.
-                    }
-                    result.signedIn = true;
-
-                    JSONArray objects = new JSONObject(readAll(connection.getInputStream()))
-                            .getJSONObject("archives").getJSONArray("objects");
-                    connection.disconnect();
-
-                    for (int i = 0; i < objects.length(); i++) {
-                        JSONObject drive = objects.getJSONObject(i);
-                        Trip trip = new Trip();
-                        trip.start = drive.optLong("startTime", 0);
-                        trip.end = drive.optLong("endTime", 0);
-                        trip.meters = drive.optInt("totalRoadMeters", -1);
-                        trip.online = true;
-                        // Entries without an end time are app launches where no drive happened.
-                        if (trip.start > 0 && trip.end > trip.start) result.trips.add(trip);
-                    }
-                    if (objects.length() < PAGE_SIZE) break;
-                }
-            } catch (Throwable t) {
-                Log.w(TAG, "Drive list request failed for environment '" + environment + "'", t);
-                result.failed = true;
-            }
-        }
-        return result;
-    }
-
-    private static String readAll(InputStream stream) throws Exception {
-        try (InputStream in = stream) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = in.read(buffer)) != -1) out.write(buffer, 0, read);
-            return out.toString("UTF-8");
-        }
-    }
-
-    /** Phone trips first; waze.com drives are added only where no phone trip overlaps them. */
-    private static List<Trip> merge(List<Trip> local, List<Trip> online) {
-        List<Trip> merged = new ArrayList<>(local);
-        for (Trip trip : online) {
-            boolean covered = false;
-            for (Trip other : local) {
-                if (trip.start < other.end && trip.end > other.start) {
-                    covered = true;
-                    break;
-                }
-            }
-            if (!covered) merged.add(trip);
-        }
-        Collections.sort(merged);
-        return merged;
-    }
-
     // endregion
 
     // region Trip list screen
 
+    /** Full-screen pages styled like Waze's Inbox: header bar with back, centred title and close. */
     private static final class TripListScreen {
         private final Activity activity;
         private final boolean night;
+        private final int headerColor;
         private final int background;
         private final int primaryText;
         private final int secondaryText;
+        private final int dividerColor;
         private final int accent = Color.parseColor("#33CCFF");
 
         private final SimpleDateFormat dayFormat = new SimpleDateFormat("EEE d MMM yyyy", Locale.getDefault());
         private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
         private final SimpleDateFormat csvFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US);
 
-        private Dialog dialog;
-        private TextView status;
-        private TripAdapter adapter;
         private List<Trip> shown = new ArrayList<>();
 
         TripListScreen(Activity activity) {
             this.activity = activity;
             night = (activity.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                     == Configuration.UI_MODE_NIGHT_YES;
-            background = night ? Color.parseColor("#1F2023") : Color.WHITE;
+            headerColor = night ? Color.parseColor("#232428") : Color.WHITE;
+            background = night ? Color.BLACK : Color.parseColor("#F2F3F5");
             primaryText = night ? Color.WHITE : Color.parseColor("#1C1C1E");
             secondaryText = night ? Color.parseColor("#A6A9B0") : Color.parseColor("#5F6368");
+            dividerColor = night ? Color.parseColor("#2C2D31") : Color.parseColor("#DADCE0");
         }
 
         private int dp(float value) {
@@ -863,85 +743,166 @@ public final class TripHistoryPatch {
             return view;
         }
 
-        void show() {
+        /**
+         * Opens a full-screen page with the Inbox-style header. {@code onBack} handles the back arrow and the
+         * system back button; it returns false to close the page.
+         */
+        private Dialog openPage(String title, View body, final BackHandler onBack) {
+            final Dialog dialog = new Dialog(activity, night
+                    ? android.R.style.Theme_DeviceDefault_NoActionBar
+                    : android.R.style.Theme_DeviceDefault_Light_NoActionBar) {
+                @Override
+                public void onBackPressed() {
+                    if (onBack == null || !onBack.back()) dismiss();
+                }
+            };
+
             LinearLayout root = new LinearLayout(activity);
             root.setOrientation(LinearLayout.VERTICAL);
-            root.setBackgroundColor(background);
+            root.setBackgroundColor(headerColor);
+            // Keep clear of the status bar, navigation bar and keyboard (the window is edge-to-edge).
+            root.setOnApplyWindowInsetsListener((view, insets) -> {
+                view.setPadding(0, insets.getSystemWindowInsetTop(), 0, insets.getSystemWindowInsetBottom());
+                return insets.consumeSystemWindowInsets();
+            });
 
-            // Header: back, title, Copy CSV.
-            LinearLayout header = new LinearLayout(activity);
-            header.setOrientation(LinearLayout.HORIZONTAL);
-            header.setGravity(Gravity.CENTER_VERTICAL);
-            header.setPadding(dp(8), dp(12), dp(16), dp(12));
+            FrameLayout header = new FrameLayout(activity);
+            header.setBackgroundColor(headerColor);
 
-            TextView back = text(24, primaryText, false);
+            TextView back = text(26, primaryText, false);
             back.setText("←");
-            back.setPadding(dp(12), dp(4), dp(16), dp(4));
-            back.setOnClickListener(v -> dialog.dismiss());
-            header.addView(back);
+            back.setGravity(Gravity.CENTER);
+            back.setOnClickListener(v -> {
+                if (onBack == null || !onBack.back()) dialog.dismiss();
+            });
+            header.addView(back, new FrameLayout.LayoutParams(dp(56), dp(56), Gravity.START | Gravity.CENTER_VERTICAL));
 
-            TextView title = text(20, primaryText, true);
-            title.setText("Trip history");
-            header.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+            TextView titleView = text(20, primaryText, true);
+            titleView.setText(title);
+            titleView.setSingleLine(true);
+            header.addView(titleView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
 
-            TextView copy = text(15, accent, true);
-            copy.setText("Copy CSV");
-            copy.setPadding(dp(8), dp(8), dp(8), dp(8));
-            copy.setOnClickListener(v -> copyCsv());
-            header.addView(copy);
-            root.addView(header);
+            TextView close = text(24, primaryText, false);
+            close.setText("✕");
+            close.setGravity(Gravity.CENTER);
+            close.setOnClickListener(v -> dialog.dismiss());
+            header.addView(close, new FrameLayout.LayoutParams(dp(56), dp(56), Gravity.END | Gravity.CENTER_VERTICAL));
+            root.addView(header, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(60)));
 
-            status = text(14, secondaryText, false);
-            status.setPadding(dp(20), 0, dp(20), dp(8));
-            root.addView(status);
+            body.setBackgroundColor(background);
+            root.addView(body, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
-            ListView list = new ListView(activity);
-            list.setDivider(null);
-            adapter = new TripAdapter();
-            list.setAdapter(adapter);
-            root.addView(list, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
-
-            dialog = new Dialog(activity, night
-                    ? android.R.style.Theme_DeviceDefault_NoActionBar
-                    : android.R.style.Theme_DeviceDefault_Light_NoActionBar);
             dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
             dialog.setContentView(root);
             Window window = dialog.getWindow();
             if (window != null) {
                 window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-                window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(background));
+                window.setBackgroundDrawable(new ColorDrawable(headerColor));
+                // Web pages need the keyboard; dialogs block it by default.
+                window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
+                window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+                window.setStatusBarColor(headerColor);
+                window.setNavigationBarColor(headerColor);
+                if (!night && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                }
             }
             dialog.show();
-
-            render(loadTrips(), "Loading drives from waze.com…", false);
-            loadOnline();
+            return dialog;
         }
 
-        private void loadOnline() {
-            final Map<String, String> headers = webHeaders();
-            openWebSession(activity, headers, () -> new Thread(() -> {
-                final OnlineResult online = fetchOnlineTrips(headers);
-                activity.runOnUiThread(() -> {
-                    if (dialog == null || !dialog.isShowing()) return;
-                    List<Trip> local = loadTrips();
-                    if (online.signedIn) {
-                        render(merge(local, online.trips), null, false);
-                    } else {
-                        render(local, (online.failed ? "Could not reach waze.com." : "Not signed in to waze.com.")
-                                + " Showing drives recorded on this phone. Tap here to sign in.", true);
+        void show() {
+            shown = new ArrayList<>(loadTrips());
+
+            LinearLayout body = new LinearLayout(activity);
+            body.setOrientation(LinearLayout.VERTICAL);
+
+            // Actions: Waze's own drive list, and CSV export.
+            LinearLayout actions = new LinearLayout(activity);
+            actions.setOrientation(LinearLayout.HORIZONTAL);
+            actions.setPadding(dp(8), dp(4), dp(8), dp(4));
+
+            TextView online = text(15, accent, true);
+            online.setText("Drives on waze.com ›");
+            online.setPadding(dp(12), dp(12), dp(12), dp(12));
+            online.setOnClickListener(v -> openWazePage());
+            actions.addView(online, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+
+            TextView copy = text(15, accent, true);
+            copy.setText("Copy CSV");
+            copy.setPadding(dp(12), dp(12), dp(12), dp(12));
+            copy.setOnClickListener(v -> copyCsv());
+            actions.addView(copy);
+            body.addView(actions);
+
+            if (shown.isEmpty()) {
+                TextView empty = text(22, primaryText, true);
+                empty.setText("Drives you navigate with a destination will appear here");
+                empty.setPadding(dp(20), dp(24), dp(20), dp(20));
+                body.addView(empty);
+            } else {
+                ListView list = new ListView(activity);
+                list.setDivider(new ColorDrawable(dividerColor));
+                list.setDividerHeight(Math.max(1, dp(0.5f)));
+                list.setAdapter(new TripAdapter());
+                body.addView(list, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+            }
+
+            openPage("Trip history", body, null);
+        }
+
+        /** Waze's own Navigation history page, loaded the way the app loads it (with its headers). */
+        private void openWazePage() {
+            try {
+                String url = historyPageUrl();
+                if (url == null) {
+                    Toast.makeText(activity, "Waze didn't provide the drive history page", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Uri parsed = Uri.parse(url);
+                Uri.Builder address = parsed.buildUpon();
+                if (parsed.getQueryParameter("dark") == null) address.appendQueryParameter("dark", night ? "1" : "0");
+                if (parsed.getQueryParameter("theme") == null) address.appendQueryParameter("theme", night ? "dark" : "light");
+                if (parsed.getQueryParameter("lang") == null) {
+                    address.appendQueryParameter("lang", Locale.getDefault().getLanguage());
+                }
+
+                final WebView webView = new WebView(activity);
+                WebSettings settings = webView.getSettings();
+                settings.setJavaScriptEnabled(true);
+                settings.setDomStorageEnabled(true);
+                CookieManager.getInstance().setAcceptCookie(true);
+                CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
+                webView.setWebViewClient(new WebViewClient() {
+                    @Override
+                    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                        // Logged (without the query) to find the page's drive list API for a later version.
+                        Uri requested = request.getUrl();
+                        Log.i(TAG, "Drive history page request: " + request.getMethod() + " "
+                                + requested.getScheme() + "://" + requested.getHost() + requested.getPath());
+                        return null;
                     }
                 });
-            }, "TripHistoryFetch").start());
-        }
 
-        private void render(List<Trip> trips, String notice, boolean signInOnTap) {
-            shown = new ArrayList<>(trips);
-            Collections.sort(shown);
-            if (notice == null && shown.isEmpty()) notice = "No drives yet. Drives with a destination set are recorded.";
-            status.setText(notice == null ? "" : notice);
-            status.setVisibility(notice == null ? View.GONE : View.VISIBLE);
-            status.setOnClickListener(signInOnTap ? v -> showSignIn() : null);
-            adapter.notifyDataSetChanged();
+                DisplayMetrics metrics = activity.getResources().getDisplayMetrics();
+                Map<String, String> headers = webHeaders(metrics.widthPixels, metrics.heightPixels);
+                webView.loadUrl(address.build().toString(), headers);
+
+                Dialog page = openPage("waze.com drives", webView, () -> {
+                    if (!webView.canGoBack()) return false;
+                    webView.goBack();
+                    return true;
+                });
+                page.setOnDismissListener(d -> {
+                    CookieManager.getInstance().flush();
+                    webView.destroy();
+                });
+                webView.requestFocus();
+            } catch (Throwable t) {
+                Log.e(TAG, "Could not open the drive history page", t);
+            }
         }
 
         private final class TripAdapter extends BaseAdapter {
@@ -965,7 +926,7 @@ public final class TripHistoryPatch {
                 Trip trip = shown.get(position);
                 LinearLayout row = new LinearLayout(activity);
                 row.setOrientation(LinearLayout.VERTICAL);
-                row.setPadding(dp(20), dp(12), dp(20), dp(12));
+                row.setPadding(dp(20), dp(14), dp(20), dp(14));
 
                 TextView line1 = text(16, primaryText, true);
                 line1.setText(trip.name != null ? trip.name : dayFormat.format(new Date(trip.start)));
@@ -977,16 +938,16 @@ public final class TripHistoryPatch {
                         .append(trip.endEstimated ? "~" : "").append(timeFormat.format(new Date(trip.end)))
                         .append(" · ").append(formatDuration(trip.end - trip.start));
                 if (trip.meters >= 0) details.append(" · ").append(formatKm(trip.meters));
-                if (trip.online) details.append(" · waze.com");
                 TextView line2 = text(14, secondaryText, false);
                 line2.setText(details);
+                line2.setPadding(0, dp(2), 0, 0);
                 row.addView(line2);
                 return row;
             }
         }
 
         private void copyCsv() {
-            StringBuilder csv = new StringBuilder("start,end,minutes,km,destination,source\n");
+            StringBuilder csv = new StringBuilder("start,end,minutes,km,destination,end_estimated\n");
             for (Trip trip : shown) {
                 String name = trip.name == null ? "" : '"' + trip.name.replace("\"", "\"\"") + '"';
                 csv.append(csvFormat.format(new Date(trip.start))).append(',')
@@ -994,7 +955,7 @@ public final class TripHistoryPatch {
                         .append(Math.round((trip.end - trip.start) / 60000.0)).append(',')
                         .append(trip.meters >= 0 ? String.format(Locale.US, "%.1f", trip.meters / 1000.0) : "").append(',')
                         .append(name).append(',')
-                        .append(trip.online ? "waze.com" : (trip.endEstimated ? "phone (end estimated)" : "phone"))
+                        .append(trip.endEstimated ? "yes" : "no")
                         .append('\n');
             }
             ClipboardManager clipboard = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
@@ -1003,34 +964,11 @@ public final class TripHistoryPatch {
                 Toast.makeText(activity, shown.size() + " drives copied", Toast.LENGTH_SHORT).show();
             }
         }
+    }
 
-        /** waze.com sign-in inside a WebView. Its cookies are then used for the drive list. */
-        private void showSignIn() {
-            try {
-                final WebView webView = new WebView(activity);
-                webView.getSettings().setJavaScriptEnabled(true);
-                webView.getSettings().setDomStorageEnabled(true);
-                CookieManager.getInstance().setAcceptCookie(true);
-                webView.setWebViewClient(new WebViewClient());
-                webView.loadUrl(WAZE_WEB + "/signin?redirect=%2Faccount");
-
-                new AlertDialog.Builder(activity)
-                        .setTitle("Sign in to waze.com")
-                        .setView(webView)
-                        .setPositiveButton("Done", null)
-                        .setOnDismissListener(d -> {
-                            CookieManager.getInstance().flush();
-                            webView.destroy();
-                            if (dialog != null && dialog.isShowing()) {
-                                render(loadTrips(), "Loading drives from waze.com…", false);
-                                loadOnline();
-                            }
-                        })
-                        .show();
-            } catch (Throwable t) {
-                Log.e(TAG, "Could not open the sign-in page", t);
-            }
-        }
+    private interface BackHandler {
+        /** Returns true if the back press was handled inside the page. */
+        boolean back();
     }
 
     // endregion
