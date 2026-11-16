@@ -1,3 +1,10 @@
+## [1.4.0-dev.1](https://github.com/SledgeSune/morphe-patches/compare/v1.3.0...v1.4.0-dev.1) (2026-11-16)
+
+### ✨ New Features
+
+* **CP:** Add "Dark mode" patch ([4a44ae1](https://github.com/SledgeSune/morphe-patches/commit/4a44ae1c275b81611a8fcbaaf4c7ec9a99fab3f9))
+* **CP:** Add "Allow sideloading" patch ([74e2826](https://github.com/SledgeSune/morphe-patches/commit/74e282631c423a746ace59341396893f774b884e))
+
 ## [1.3.0](https://github.com/SledgeSune/morphe-patches/compare/v1.2.0...v1.3.0) (2026-11-11)
 
 ### ✨ New Features
