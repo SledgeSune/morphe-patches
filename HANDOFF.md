@@ -17,7 +17,7 @@ Update this file at the end of every session (`morphe-handoff` skill).
 | Local checkout | `C:\Programs\Claude\Morphe-Patches\morphe-patches` (template reference clone next to it) |
 | Latest release | **v1.3.0** (2026-11-11), 9 patches. v1.2.0 and v1.1.0 (Trip history), v1.0.0 (2026-11-08) |
 | Add to Morphe | `https://morphe.software/add-source?github=SledgeSune/morphe-patches` |
-| Tested APKs | APKMirror `.apkm`: Waze 5.27.4.900 (in the parent folder), Sync.ME 4.71.2.1 (kept outside the repo) |
+| Tested APKs | APKMirror `.apkm`: Waze 5.27.4.900 (in the parent folder), Sync.ME 4.71.2.1 (kept outside the repo). CP 2.3.0: single `.apk` ("antisplit") in the parent folder |
 | Tools | JDK 21 (Temurin), Android SDK + dexdump, jadx 1.5.6 (GUI jar only: `java -cp <jar> jadx.cli.JadxCLI`), Python 3.14, `gh` signed in as SledgeSune |
 
 Decompiled sources from earlier sessions are gone; recreate them with the `new-morphe-patch` skill.
@@ -47,6 +47,12 @@ Obfuscated names are for the tested version only; fingerprints don't depend on t
 
 Compared with Forsigh/waze-patches (GPLv3, 2026-11-11): their patches only fake the **Java** config getters, but most ad and timeout keys are read only by `libwaze.so`, so ours write into the native config store instead. Their native-write helper skips every write (`if-nez` after `getInstance()`).
 
+### CP 2.3.0 — `patches/.../cp/` (Flutter: UI is compiled Dart in `libapp.so`; only the Java shell is patchable)
+
+| Patch | Hook | Status |
+|---|---|---|
+| **Dark mode** (`darkmode/`) | The app has no dark theme, so the window is colour-inverted. `FlutterFragmentActivity.onCreate` (`Lq5/k;->onCreate`, strings `cached_engine_id` + `Could not instantiate FlutterFragment subclass (`) calls the background-mode getter (`Lq5/k;->i()I`, string `background_mode`) 3 times; the 3rd result becomes the render mode and is forced to 2 = texture (a SurfaceView can't be filtered). Index 0 of onCreate → `DarkModePatch.onActivityCreate` posts a hardware layer with a ColorMatrix (invert, hue +180°, black lifted to grey 18) on the decor view, and re-applies on config changes (MainActivity handles `uiMode` itself). Flutter's `decodeSystemUiOverlayStyle(JSONObject)` (`Ls2/F;->e`, strings `statusBarIconBrightness` + `systemNavigationBarIconBrightness`) → `adjustSystemBars` converts bar colours and swaps icon brightness. Follows the phone's dark theme; option "Always dark". | Untested. Photos/maps/QR codes come out inverted; the texture renderer may be slightly slower |
+
 ## Open issues
 
 1. **GitHub Actions blocked** by a billing lock on GitHub's side (account is Free, nothing owed). Owner was told to
@@ -70,5 +76,6 @@ Compared with Forsigh/waze-patches (GPLv3, 2026-11-11): their patches only fake 
   side-menu list, GPS distance, waze.com session via the history page. Not released; test bundle sent.
   Owner tested it: drives recorded well. Then: Inbox-style screen, 2 km minimum, waze.com merge dropped in favour
   of opening Waze's own drive-history page signed in. Owner approved the list; released as v1.2.0.
+- **2026-11-16** — New app CP 2.3.0 (Flutter): "Dark mode" by colour inversion. Not released; test bundle sent.
 - **2026-11-11** — Reviewed Forsigh/waze-patches; added "Keep Waze alive" and "Remove ads"; owner approved, released as v1.3.0 (no phone test
   reported yet). Lead for trip history: `libwaze.so` contains `https://www.waze.com/_user/trips/`.
