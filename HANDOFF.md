@@ -15,7 +15,7 @@ Update this file at the end of every session (`morphe-handoff` skill).
 |---|---|
 | Repo | https://github.com/SledgeSune/morphe-patches (`dev` = work, `main` = releases) |
 | Local checkout | `C:\Programs\Claude\Morphe-Patches\morphe-patches` (template reference clone next to it) |
-| Latest release | Stable **v1.3.0** (2026-11-11), 9 patches. **Pre-release v1.4.0-dev.3** (2026-11-16, 11 patches, +CP; owner wants every change shipped as a pre-release, see memory) — marked pre-release on GitHub, tag + release off `dev`, `main` untouched; only Manager's "Pre-release patches" users see it |
+| Latest release | Stable **v1.4.0** (2026-11-16), 11 patches (3 apps: Waze, Sync.ME, CP). v1.3.0 (2026-11-11), v1.0.0 (2026-11-08) |
 | Add to Morphe | `https://morphe.software/add-source?github=SledgeSune/morphe-patches` |
 | Tested APKs | APKMirror `.apkm`: Waze **5.27.0.1** (stable, build 1030748) **and** 5.27.4.900 (beta, 1030749) — same obfuscation mapping, all fingerprints verified on both (in the parent folder). Sync.ME 4.71.2.1 (kept outside the repo). CP 2.3.0: single `.apk` ("antisplit") in the parent folder |
 | Tools | JDK 21 (Temurin), Android SDK + dexdump, jadx 1.5.6 (GUI jar only: `java -cp <jar> jadx.cli.JadxCLI`), Python 3.14, `gh` signed in as SledgeSune |
@@ -55,7 +55,7 @@ Compared with Forsigh/waze-patches (GPLv3, 2026-11-11): their patches only fake 
 | **Dark mode** (`darkmode/`) | The app has no dark theme, so the window is colour-inverted. `FlutterFragmentActivity.onCreate` (`Lq5/k;->onCreate`, strings `cached_engine_id` + `Could not instantiate FlutterFragment subclass (`) calls the background-mode getter (`Lq5/k;->i()I`, string `background_mode`) 3 times; the 3rd result becomes the render mode and is forced to 2 = texture (a SurfaceView can't be filtered). Index 0 of onCreate → `DarkModePatch.onActivityCreate` posts a hardware layer with a ColorMatrix (invert, hue +180°, black lifted to grey 18) on the decor view, and re-applies on config changes (MainActivity handles `uiMode` itself). Flutter's `decodeSystemUiOverlayStyle(JSONObject)` (`Ls2/F;->e`, strings `statusBarIconBrightness` + `systemNavigationBarIconBrightness`) → `adjustSystemBars` converts bar colours and swaps icon brightness. Follows the phone's dark theme; option "Always dark". | Untested. Photos/maps/QR codes come out inverted; the texture renderer may be slightly slower |
 
 - **2026-11-16** — Verified all Waze patches against stable 5.27.0.1 (same mapping as the 5.27.4.900 beta they
-  were built on); added it as the primary supported version. Shipped in the 1.4.0 pre-release line.
+  were built on); added it as the primary supported version. Released as stable v1.4.0 (2026-11-16).
 - **2026-11-16** — CP dark mode iterated (dev.2, dev.3): confirmed on phone (opens, no Store redirect, dark applies). Owner feedback: whole-screen **inversion flips the dark CP brand green to pastel and shadows to a white glow — inherent, not fixable with a global ColorMatrix** (sim: logo green ~#2E8B3D -> ~#AEC6AE; max saturation only reaches ~#88A888). App has no built-in dark theme (a single ThemeMode reference) so there is nothing to flip. Chosen (AskUserQuestion): keep tuned inversion + a **Light/Dark/Auto** Manager option (no in-menu toggle: menu is Flutter-drawn, cannot inject a widget). dev.3 = mode option, SAT 1.5, LIGHT_CEIL 175 (dimmer glow), DARK_FLOOR 40.
 
 ## Open issues
