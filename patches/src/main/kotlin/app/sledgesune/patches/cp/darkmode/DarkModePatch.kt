@@ -5,7 +5,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.instructions
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.booleanOption
+import app.morphe.patcher.patch.stringOption
 import app.morphe.patcher.patch.patch
 import app.morphe.patcher.string
 import app.sledgesune.patches.shared.Constants.COMPATIBILITY_CP
@@ -57,43 +57,52 @@ private object SystemUiOverlayStyleFingerprint : Fingerprint(
     custom = { method, _ -> method.parameterTypes.any { it.toString() == "Lorg/json/JSONObject;" } },
 )
 
-/** Extension stub; the patch makes it return the "always dark" option. */
-private object AlwaysDarkStubFingerprint : Fingerprint(
+/** Extension stub; the patch writes the chosen mode (0 = auto, 1 = always dark, 2 = off/light). */
+private object ModeStubFingerprint : Fingerprint(
     definingClass = EXTENSION_CLASS,
-    name = "alwaysDark",
-    returnType = "Z",
+    name = "mode",
+    returnType = "I",
     parameters = listOf(),
 )
 
 @Suppress("unused")
 val darkModePatch = patch(
     name = "Dark mode",
-    description = "Turns the app dark when your phone is in dark mode, by inverting its colours " +
-        "(colours keep their hue). Photos and QR codes are inverted too.",
+    description = "Darkens the app by inverting its colours (hues are kept). Choose Auto (follow the phone), " +
+        "Always dark, or Off. Note: brand colours look lighter, and photos and QR codes are inverted too.",
     default = true,
 ) {
     compatibleWith(COMPATIBILITY_CP)
 
     extendWith("extensions/extension.mpe")
 
-    val alwaysDark by booleanOption(
-        key = "alwaysDark",
-        default = false,
-        title = "Always dark",
-        description = "Dark even when the phone is in light mode. Off: follows the phone's dark theme, " +
-            "so you can switch it off quickly (for example to show a ticket's QR code).",
+    val mode by stringOption(
+        key = "mode",
+        default = "auto",
+        values = mapOf(
+            "Auto (follow phone)" to "auto",
+            "Always dark" to "dark",
+            "Off (always light)" to "light",
+        ),
+        title = "Mode",
+        description = "Auto follows your phone's light/dark setting (so you can switch to light quickly, " +
+            "e.g. to show a ticket QR code). Always dark ignores the phone; Off disables dark mode.",
+        required = true,
     )
 
     execute {
-        if (alwaysDark == true) {
-            AlwaysDarkStubFingerprint.method.addInstructions(
-                0,
-                """
-                    const/4 v0, 0x1
-                    return v0
-                """,
-            )
+        val modeValue = when (mode) {
+            "dark" -> 1
+            "light" -> 2
+            else -> 0
         }
+        ModeStubFingerprint.method.addInstructions(
+            0,
+            """
+                const/4 v0, $modeValue
+                return v0
+            """,
+        )
 
         val backgroundMode = BackgroundModeFingerprint.method
 

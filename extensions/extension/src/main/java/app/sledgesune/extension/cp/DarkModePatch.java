@@ -34,8 +34,8 @@ public final class DarkModePatch {
     // dim-the-screen overlays - which invert to bright - can't go past the ceiling. SATURATION puts back the
     // colour that inversion washes out, so the green reads clean instead of greyed.
     private static final int DARK_FLOOR = 40;
-    private static final int LIGHT_CEIL = 205;
-    private static final float SATURATION = 1.35f;
+    private static final int LIGHT_CEIL = 175;
+    private static final float SATURATION = 1.5f;
 
     /** Window background set under the app while dark, so loads and gaps never flash white. */
     private static final int WINDOW_BACKGROUND = 0xFF000000 | (DARK_FLOOR << 16) | (DARK_FLOOR << 8) | DARK_FLOOR;
@@ -44,9 +44,9 @@ public final class DarkModePatch {
 
     private static WeakReference<Activity> currentActivity = new WeakReference<>(null);
 
-    /** The patch makes this return true when the "Always dark" option is on. */
-    public static boolean alwaysDark() {
-        return false;
+    /** The patch writes the chosen mode here: 0 = auto (follow phone), 1 = always dark, 2 = off (light). */
+    public static int mode() {
+        return 0;
     }
 
     /** Injection point: start of the Flutter activity's onCreate. */
@@ -75,9 +75,13 @@ public final class DarkModePatch {
     }
 
     private static boolean isDark(Activity activity) {
-        if (alwaysDark()) return true;
-        int night = activity.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-        return night == Configuration.UI_MODE_NIGHT_YES;
+        switch (mode()) {
+            case 1: return true;   // Always dark.
+            case 2: return false;  // Off (always light).
+            default:               // Auto: follow the phone.
+                int night = activity.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+                return night == Configuration.UI_MODE_NIGHT_YES;
+        }
     }
 
     private static void apply(Activity activity) {
