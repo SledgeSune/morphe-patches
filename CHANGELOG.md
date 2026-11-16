@@ -1,3 +1,14 @@
+## [1.4.0-dev.2](https://github.com/SledgeSune/morphe-patches/compare/v1.3.0...v1.4.0-dev.2) (2026-11-16)
+
+### ✨ New Features
+
+* **CP:** Add "Dark mode" patch ([4a44ae1](https://github.com/SledgeSune/morphe-patches/commit/4a44ae1c275b81611a8fcbaaf4c7ec9a99fab3f9))
+* **CP:** Add "Allow sideloading" patch ([74e2826](https://github.com/SledgeSune/morphe-patches/commit/74e282631c423a746ace59341396893f774b884e))
+
+### 🐛 Bug Fixes
+
+* **CP:** Dark mode - lighter Material-style grey, cleaner green, less loading glare ([5a4b41a](https://github.com/SledgeSune/morphe-patches/commit/5a4b41a00aaaa11e5ebbb41c14a755a533c81e09))
+
 ## [1.4.0-dev.1](https://github.com/SledgeSune/morphe-patches/compare/v1.3.0...v1.4.0-dev.1) (2026-11-16)
 
 ### ✨ New Features
