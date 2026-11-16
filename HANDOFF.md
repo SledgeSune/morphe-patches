@@ -15,7 +15,7 @@ Update this file at the end of every session (`morphe-handoff` skill).
 |---|---|
 | Repo | https://github.com/SledgeSune/morphe-patches (`dev` = work, `main` = releases) |
 | Local checkout | `C:\Programs\Claude\Morphe-Patches\morphe-patches` (template reference clone next to it) |
-| Latest release | Stable **v1.3.0** (2026-11-11), 9 patches. **Pre-release v1.4.0-dev.1** (2026-11-16, 11 patches, +CP) — marked pre-release on GitHub, tag + release off `dev`, `main` untouched; only Manager's "Pre-release patches" users see it |
+| Latest release | Stable **v1.3.0** (2026-11-11), 9 patches. **Pre-release v1.4.0-dev.2** (2026-11-16, 11 patches, +CP; owner wants every change shipped as a pre-release, see memory) — marked pre-release on GitHub, tag + release off `dev`, `main` untouched; only Manager's "Pre-release patches" users see it |
 | Add to Morphe | `https://morphe.software/add-source?github=SledgeSune/morphe-patches` |
 | Tested APKs | APKMirror `.apkm`: Waze 5.27.4.900 (in the parent folder), Sync.ME 4.71.2.1 (kept outside the repo). CP 2.3.0: single `.apk` ("antisplit") in the parent folder |
 | Tools | JDK 21 (Temurin), Android SDK + dexdump, jadx 1.5.6 (GUI jar only: `java -cp <jar> jadx.cli.JadxCLI`), Python 3.14, `gh` signed in as SledgeSune |
