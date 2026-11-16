@@ -1,6 +1,6 @@
 {
   "NOTE": "Do NOT manually edit this file. This file is automatically updated when semantic release (release.yml) runs. Manually editing this file can break your releases and break third party tools that use this file.",
-  "version": "1.4.0-dev.3",
+  "version": "1.4.0-dev.4",
   "patches": [
     {
       "name": "Allow sideloading",
@@ -38,7 +38,7 @@
     },
     {
       "name": "Dark mode",
-      "description": "Turns the app dark when your phone is in dark mode, by inverting its colours (colours keep their hue). Photos and QR codes are inverted too.",
+      "description": "Darkens the app by inverting its colours (hues are kept). Choose Auto (follow the phone), Always dark, or Off. Note: brand colours look lighter, and photos and QR codes are inverted too.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -70,13 +70,17 @@
       ],
       "options": [
         {
-          "key": "alwaysDark",
-          "title": "Always dark",
-          "description": "Dark even when the phone is in light mode. Off: follows the phone's dark theme, so you can switch it off quickly (for example to show a ticket's QR code).",
-          "required": false,
-          "type": "kotlin.Boolean",
-          "default": false,
-          "values": null
+          "key": "mode",
+          "title": "Mode",
+          "description": "Auto follows your phone's light/dark setting (so you can switch to light quickly, e.g. to show a ticket QR code). Always dark ignores the phone; Off disables dark mode.",
+          "required": true,
+          "type": "kotlin.String",
+          "default": "auto",
+          "values": {
+            "Auto (follow phone)": "auto",
+            "Always dark": "dark",
+            "Off (always light)": "light"
+          }
         }
       ]
     },
@@ -95,6 +99,13 @@
           "signatures": null,
           "formFactor": "MOBILE",
           "targets": [
+            {
+              "version": "5.27.0.1",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
             {
               "version": "5.27.4.900",
               "versionCodes": null,
@@ -232,6 +243,13 @@
           "formFactor": "MOBILE",
           "targets": [
             {
+              "version": "5.27.0.1",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
+            {
               "version": "5.27.4.900",
               "versionCodes": null,
               "isExperimental": false,
@@ -315,6 +333,13 @@
           "formFactor": "MOBILE",
           "targets": [
             {
+              "version": "5.27.0.1",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
+            {
               "version": "5.27.4.900",
               "versionCodes": null,
               "isExperimental": false,
@@ -382,6 +407,13 @@
           "signatures": null,
           "formFactor": "MOBILE",
           "targets": [
+            {
+              "version": "5.27.0.1",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
             {
               "version": "5.27.4.900",
               "versionCodes": null,
