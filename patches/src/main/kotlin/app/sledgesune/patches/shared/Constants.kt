@@ -30,4 +30,18 @@ object Constants {
             AppTarget(version = null, isExperimental = true),
         )
     )
+
+    /** CP - Comboios de Portugal. A Flutter app; only its Android shell (Java) can be patched. */
+    val COMPATIBILITY_CP = Compatibility(
+        name = "CP",
+        packageName = "pt.cp.mobiapp",
+        // Tested with a single ("antisplit") APK.
+        apkFileType = ApkFileType.APK,
+        appIconColor = 0x6CA437,
+        targets = listOf(
+            // Version the patch was developed against.
+            AppTarget(version = "2.3.0"),
+            AppTarget(version = null, isExperimental = true),
+        )
+    )
 }
