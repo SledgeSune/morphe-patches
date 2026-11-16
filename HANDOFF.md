@@ -15,7 +15,7 @@ Update this file at the end of every session (`morphe-handoff` skill).
 |---|---|
 | Repo | https://github.com/SledgeSune/morphe-patches (`dev` = work, `main` = releases) |
 | Local checkout | `C:\Programs\Claude\Morphe-Patches\morphe-patches` (template reference clone next to it) |
-| Latest release | **v1.3.0** (2026-11-11), 9 patches. v1.2.0 and v1.1.0 (Trip history), v1.0.0 (2026-11-08) |
+| Latest release | Stable **v1.3.0** (2026-11-11), 9 patches. **Pre-release v1.4.0-dev.1** (2026-11-16, 11 patches, +CP) — marked pre-release on GitHub, tag + release off `dev`, `main` untouched; only Manager's "Pre-release patches" users see it |
 | Add to Morphe | `https://morphe.software/add-source?github=SledgeSune/morphe-patches` |
 | Tested APKs | APKMirror `.apkm`: Waze 5.27.4.900 (in the parent folder), Sync.ME 4.71.2.1 (kept outside the repo). CP 2.3.0: single `.apk` ("antisplit") in the parent folder |
 | Tools | JDK 21 (Temurin), Android SDK + dexdump, jadx 1.5.6 (GUI jar only: `java -cp <jar> jadx.cli.JadxCLI`), Python 3.14, `gh` signed in as SledgeSune |
@@ -77,6 +77,8 @@ Compared with Forsigh/waze-patches (GPLv3, 2026-11-11): their patches only fake 
   side-menu list, GPS distance, waze.com session via the history page. Not released; test bundle sent.
   Owner tested it: drives recorded well. Then: Inbox-style screen, 2 km minimum, waze.com merge dropped in favour
   of opening Waze's own drive-history page signed in. Owner approved the list; released as v1.2.0.
-- **2026-11-16** — New app CP 2.3.0 (Flutter, PairIP-wrapped): "Dark mode" by colour inversion, plus "Allow sideloading" (no-op the PairIP Play-install check that redirected to the Store on startup). Not released; test bundle sent.
+- **2026-11-16** — New app CP 2.3.0 (Flutter, PairIP-wrapped): "Dark mode" by colour inversion, plus "Allow sideloading" (no-op the PairIP Play-install check that redirected to the Store on startup). Shipped as **pre-release v1.4.0-dev.1** (by
+  hand: Actions is blocked, so the normal `dev` auto-prerelease never runs; built off `dev`, tag `v1.4.0-dev.1`,
+  `gh release create --prerelease`, `main` left alone). A full release would be the next `v1.4.0` off `main`.
 - **2026-11-11** — Reviewed Forsigh/waze-patches; added "Keep Waze alive" and "Remove ads"; owner approved, released as v1.3.0 (no phone test
   reported yet). Lead for trip history: `libwaze.so` contains `https://www.waze.com/_user/trips/`.
