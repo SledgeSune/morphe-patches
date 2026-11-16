@@ -6,6 +6,7 @@ import android.content.res.Configuration;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -28,8 +29,16 @@ public final class DarkModePatch {
 
     private static final String TAG = "CpDarkMode";
 
-    /** Darkest grey that white turns into (0-255). Pure black looks harsh next to grey text. */
-    private static final int DARK_FLOOR = 18;
+    // Output is squeezed into [DARK_FLOOR, LIGHT_CEIL] (0-255), a Material-style dark range: the former white
+    // background becomes grey (not black), former black text becomes soft white (not glaring), and the app's
+    // dim-the-screen overlays - which invert to bright - can't go past the ceiling. SATURATION puts back the
+    // colour that inversion washes out, so the green reads clean instead of greyed.
+    private static final int DARK_FLOOR = 40;
+    private static final int LIGHT_CEIL = 205;
+    private static final float SATURATION = 1.35f;
+
+    /** Window background set under the app while dark, so loads and gaps never flash white. */
+    private static final int WINDOW_BACKGROUND = 0xFF000000 | (DARK_FLOOR << 16) | (DARK_FLOOR << 8) | DARK_FLOOR;
 
     private static final float[] MATRIX = buildMatrix();
 
@@ -44,6 +53,10 @@ public final class DarkModePatch {
     public static void onActivityCreate(final Activity activity) {
         try {
             currentActivity = new WeakReference<>(activity);
+            // Dark the window background now, before the first frame, so cold-start loading doesn't flash white.
+            if (isDark(activity) && activity.getWindow() != null) {
+                activity.getWindow().setBackgroundDrawable(new ColorDrawable(WINDOW_BACKGROUND));
+            }
             // After onCreate, when the window has its views.
             new Handler(Looper.getMainLooper()).post(() -> apply(activity));
             activity.registerComponentCallbacks(new ComponentCallbacks() {
@@ -72,6 +85,7 @@ public final class DarkModePatch {
             if (activity.isFinishing() || activity.getWindow() == null) return;
             View decor = activity.getWindow().getDecorView();
             if (isDark(activity)) {
+                activity.getWindow().setBackgroundDrawable(new ColorDrawable(WINDOW_BACKGROUND));
                 Paint paint = new Paint();
                 paint.setColorFilter(new ColorMatrixColorFilter(MATRIX));
                 decor.setLayerType(View.LAYER_TYPE_HARDWARE, paint);
@@ -137,8 +151,13 @@ public final class DarkModePatch {
                 2 * lr, 2 * lg, 2 * lb - 1, 0, 0,
                 0, 0, 0, 1, 0,
         }));
-        // 3. Lift black to dark grey.
-        float scale = (255f - DARK_FLOOR) / 255f;
+        // 3. Put back the colour that inversion washed out, so greens/blues read clean.
+        ColorMatrix saturation = new ColorMatrix();
+        saturation.setSaturation(SATURATION);
+        result.postConcat(saturation);
+        // 4. Squeeze the full range into [DARK_FLOOR, LIGHT_CEIL]: background greys up off pure black, white text
+        //    softens, and inverted dim-overlays are capped so they can't glare.
+        float scale = (LIGHT_CEIL - DARK_FLOOR) / 255f;
         result.postConcat(new ColorMatrix(new float[]{
                 scale, 0, 0, 0, DARK_FLOOR,
                 0, scale, 0, 0, DARK_FLOOR,
