@@ -1,3 +1,14 @@
+## [1.4.0](https://github.com/SledgeSune/morphe-patches/compare/v1.3.0...v1.4.0) (2026-11-16)
+
+### ✨ New Features
+
+* **CP:** Add "Dark mode" patch (Light / Dark / Auto, Material-style) ([4a44ae1](https://github.com/SledgeSune/morphe-patches/commit/4a44ae1c275b81611a8fcbaaf4c7ec9a99fab3f9))
+* **CP:** Add "Allow sideloading" patch (stops the Play Store redirect) ([74e2826](https://github.com/SledgeSune/morphe-patches/commit/74e282631c423a746ace59341396893f774b884e))
+
+### 🐛 Bug Fixes
+
+* **Waze:** Verify patches on stable 5.27.0.1 and add it as a supported version ([36364aa](https://github.com/SledgeSune/morphe-patches/commit/36364aae8f4f9365d32beecbc3824321bd310404))
+
 ## [1.4.0-dev.4](https://github.com/SledgeSune/morphe-patches/compare/v1.3.0...v1.4.0-dev.4) (2026-11-16)
 
 ### ✨ New Features
