@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-11-16T14:27:39",
-  "description": "## [1.4.0-dev.2](https://github.com/SledgeSune/morphe-patches/compare/v1.3.0...v1.4.0-dev.2) (2026-11-16)\n\n### ✨ New Features\n\n* **CP:** Add \"Dark mode\" patch ([4a44ae1](https://github.com/SledgeSune/morphe-patches/commit/4a44ae1c275b81611a8fcbaaf4c7ec9a99fab3f9))\n* **CP:** Add \"Allow sideloading\" patch ([74e2826](https://github.com/SledgeSune/morphe-patches/commit/74e282631c423a746ace59341396893f774b884e))\n\n### 🐛 Bug Fixes\n\n* **CP:** Dark mode - lighter Material-style grey, cleaner green, less loading glare ([5a4b41a](https://github.com/SledgeSune/morphe-patches/commit/5a4b41a00aaaa11e5ebbb41c14a755a533c81e09))\n",
-  "download_url": "https://github.com/SledgeSune/morphe-patches/releases/download/v1.4.0-dev.2/patches-1.4.0-dev.2.mpp",
+  "created_at": "2026-11-16T14:42:36",
+  "description": "## [1.4.0-dev.3](https://github.com/SledgeSune/morphe-patches/compare/v1.3.0...v1.4.0-dev.3) (2026-11-16)\n\n### ✨ New Features\n\n* **CP:** Add \"Dark mode\" patch (Light/Dark/Auto) ([4a44ae1](https://github.com/SledgeSune/morphe-patches/commit/4a44ae1c275b81611a8fcbaaf4c7ec9a99fab3f9))\n* **CP:** Add \"Allow sideloading\" patch ([74e2826](https://github.com/SledgeSune/morphe-patches/commit/74e282631c423a746ace59341396893f774b884e))\n* **CP:** Dark mode - Light/Dark/Auto setting ([aeceff5](https://github.com/SledgeSune/morphe-patches/commit/aeceff53a02f7de840ca65a3077125b2f9d06162))\n\n### 🐛 Bug Fixes\n\n* **CP:** Dark mode - dimmer loading glow, cleaner green, Material-style grey ([5a4b41a](https://github.com/SledgeSune/morphe-patches/commit/5a4b41a00aaaa11e5ebbb41c14a755a533c81e09))\n",
+  "download_url": "https://github.com/SledgeSune/morphe-patches/releases/download/v1.4.0-dev.3/patches-1.4.0-dev.3.mpp",
   "signature_download_url": "",
-  "version": "1.4.0-dev.2"
+  "version": "1.4.0-dev.3"
 }
