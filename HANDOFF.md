@@ -17,7 +17,7 @@ Update this file at the end of every session (`morphe-handoff` skill).
 | Local checkout | `C:\Programs\Claude\Morphe-Patches\morphe-patches` (template reference clone next to it) |
 | Latest release | Stable **v1.3.0** (2026-11-11), 9 patches. **Pre-release v1.4.0-dev.3** (2026-11-16, 11 patches, +CP; owner wants every change shipped as a pre-release, see memory) — marked pre-release on GitHub, tag + release off `dev`, `main` untouched; only Manager's "Pre-release patches" users see it |
 | Add to Morphe | `https://morphe.software/add-source?github=SledgeSune/morphe-patches` |
-| Tested APKs | APKMirror `.apkm`: Waze 5.27.4.900 (in the parent folder), Sync.ME 4.71.2.1 (kept outside the repo). CP 2.3.0: single `.apk` ("antisplit") in the parent folder |
+| Tested APKs | APKMirror `.apkm`: Waze **5.27.4.900** — a **beta** build (`.900` = Waze's beta channel), *not* the stable release (in the parent folder), Sync.ME 4.71.2.1 (kept outside the repo). CP 2.3.0: single `.apk` ("antisplit") in the parent folder |
 | Tools | JDK 21 (Temurin), Android SDK + dexdump, jadx 1.5.6 (GUI jar only: `java -cp <jar> jadx.cli.JadxCLI`), Python 3.14, `gh` signed in as SledgeSune |
 
 Decompiled sources from earlier sessions are gone; recreate them with the `new-morphe-patch` skill.
@@ -62,6 +62,12 @@ Compared with Forsigh/waze-patches (GPLv3, 2026-11-11): their patches only fake 
    open a ticket at support.github.com. Release by hand until `gh run list -R SledgeSune/morphe-patches --limit 3` succeeds.
 2. **Only "Hide ads" is confirmed** on a phone. Ask the owner about the others before building on them.
 3. Issues are still enabled on the repo although the owner offers no support.
+4. **Waze patches were built against a beta (`5.27.4.900`), not stable.** String/config/JNI-anchored patches (reroute,
+   Keep alive, Remove ads) should carry to the matching stable build; the **smali-layout-sensitive** Trip history
+   hooks (Recent-row injection in `au`, the MainMenuActions side-menu row) are the ones that may break on stable.
+   The declared tested target is a beta, so stable users fall under the `null`/experimental target. To fix: run the
+   `update-app-version` skill against a **stable** Waze `.apkm` (owner to drop it in the parent folder) — re-verify
+   each fingerprint matches exactly one method, then set `COMPATIBILITY_WAZE` tested version to the stable one.
 
 ## Ideas not started
 
