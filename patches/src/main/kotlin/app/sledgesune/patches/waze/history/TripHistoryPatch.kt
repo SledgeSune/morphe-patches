@@ -6,6 +6,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.instructions
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.patch.booleanOption
 import app.morphe.patcher.patch.patch
 import app.morphe.patcher.string
 import app.sledgesune.patches.shared.Constants.COMPATIBILITY_WAZE
@@ -153,6 +154,23 @@ private fun setExtensionString(methodName: String, value: String) {
     )
 }
 
+/** Makes an extension stub method (`static boolean x() { return false; }`) return [value] instead. */
+private fun setExtensionBoolean(methodName: String, value: Boolean) {
+    val method = Fingerprint(
+        definingClass = EXTENSION_CLASS,
+        name = methodName,
+        returnType = "Z",
+        parameters = listOf(),
+    ).method
+    method.addInstructions(
+        0,
+        """
+            const/4 v0, ${if (value) "0x1" else "0x0"}
+            return v0
+        """
+    )
+}
+
 private fun javaName(type: String) = type.removePrefix("L").removeSuffix(";").replace('/', '.')
 
 private fun areRegisters4Bit(vararg registers: Int) = registers.all { it < 16 }
@@ -161,14 +179,28 @@ private fun areRegisters4Bit(vararg registers: Int) = registers.all { it < 16 }
 val tripHistoryPatch = patch(
     name = "Trip history",
     description = "Records how long each drive took and how far you drove. Shows it next to each place " +
-        "under Recent in \"Where to?\", and lists all drives under \"Trip history\" in the side menu.",
+        "under Recent in \"Where to?\", and lists all drives under \"Trip history\" in the side menu. " +
+        "With \"Stop the timer myself\" on, the drive's timer keeps running when Waze says you've arrived, " +
+        "and a button lets you stop it when you've actually finished.",
     default = true
 ) {
     compatibleWith(COMPATIBILITY_WAZE)
 
     extendWith("extensions/extension.mpe")
 
+    val manualStop by booleanOption(
+        key = "manualStop",
+        default = true,
+        title = "Stop the timer myself",
+        description = "Waze often decides you've arrived before you've really stopped, which cuts the drive's " +
+            "recorded time short. With this on, the timer keeps running past that point and a button appears so " +
+            "you can stop it when you've actually finished. With it off, arriving ends the drive as before.",
+        required = true,
+    )
+
     execute {
+        setExtensionBoolean("manualStop", manualStop ?: true)
+
         // Range invokes are used for parameters, since parameter registers can be above v15.
         ApplicationOnCreateFingerprint.method.addInstruction(
             0,

@@ -13,6 +13,7 @@ import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.location.Location;
 import android.location.LocationListener;
@@ -92,8 +93,22 @@ public final class TripHistoryPatch {
     /** Two places are the same if both coordinates are this close (micro-degrees, about 150 m). */
     private static final int SAME_PLACE_MICRODEGREES = 1500;
 
+    /**
+     * Safety net for the manual-stop timer: if the drive is never stopped by hand, end it this long after Waze
+     * reported arrival, at the last moment the phone moved. Keeps a forgotten timer from running forever.
+     */
+    private static final long MANUAL_STOP_MAX_MS = 2 * 60 * 60_000L;
+
+    /** Waze blue, used for the stop-timer button. */
+    private static final int ACCENT = Color.parseColor("#33CCFF");
+
     private static volatile Application application;
     private static volatile WeakReference<Activity> currentActivity = new WeakReference<>(null);
+
+    /** The stop-timer button and its ticker live on the main thread only. */
+    private static final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private static View stopChipView;
+    private static Runnable chipRefresh;
 
     // region Patch-time names (the patch replaces these bodies)
 
@@ -123,6 +138,11 @@ public final class TripHistoryPatch {
 
     public static String onClickInterface() {
         return "";
+    }
+
+    /** Whether the user stops the drive's timer by hand (true) or Waze's arrival ends it (false). */
+    public static boolean manualStop() {
+        return true;
     }
 
     // endregion
@@ -276,7 +296,18 @@ public final class TripHistoryPatch {
             synchronized (lock) {
                 long now = System.currentTimeMillis();
                 if (navigating) {
-                    if (openTrip != null) return;
+                    if (openTrip != null) {
+                        if (openTrip.arrivedAt > 0) {
+                            // A previous drive is still waiting to be stopped by hand; close it (at its last
+                            // known moment, estimated) before the new drive begins.
+                            OpenTrip previous = openTrip;
+                            openTrip = null;
+                            removeStopChip();
+                            finishTrip(previous, Math.max(previous.arrivedAt, previous.lastSeen), true);
+                        } else {
+                            return; // Duplicate "navigation started" for the same drive.
+                        }
+                    }
                     openTrip = new OpenTrip();
                     openTrip.start = now;
                     openTrip.lastSeen = now;
@@ -284,6 +315,13 @@ public final class TripHistoryPatch {
                     saveOpenTrip();
                     startGps();
                 } else if (openTrip != null) {
+                    // With the manual-stop timer, Waze ending navigation after arrival does NOT end the drive:
+                    // the timer keeps running until the user taps Stop (or a safety fallback fires).
+                    if (manualStop() && openTrip.arrivedAt > 0) {
+                        openTrip.lastSeen = now;
+                        saveOpenTrip();
+                        return;
+                    }
                     OpenTrip open = openTrip;
                     openTrip = null;
                     stopGps();
@@ -364,7 +402,11 @@ public final class TripHistoryPatch {
         }
     }
 
-    /** Injection point: arrived at the destination. The drive ends now, even if navigation stops later. */
+    /**
+     * Injection point: arrived at the destination. With the manual-stop timer on, the drive stays open and a Stop
+     * button appears, so the clock keeps running until the user says they've really finished. With it off, this
+     * marks the arrival time and the drive ends when navigation stops, as before.
+     */
     public static void onArrived() {
         try {
             synchronized (lock) {
@@ -372,6 +414,7 @@ public final class TripHistoryPatch {
                 openTrip.arrivedAt = System.currentTimeMillis();
                 saveOpenTrip();
             }
+            if (manualStop()) showStopChip();
         } catch (Throwable t) {
             Log.e(TAG, "onArrived failed", t);
         }
@@ -519,9 +562,22 @@ public final class TripHistoryPatch {
             if (meters < 5) return; // Standing still: GPS noise. Keep the previous fix.
             lastFix = fix;
             if (meters / seconds > 70) return; // Faster than 250 km/h: a jump, not driving.
+
+            long now = System.currentTimeMillis();
+            boolean overCap = false;
+            long capEnd = 0;
             synchronized (lock) {
-                if (openTrip != null && openTrip.arrivedAt == 0) openTrip.gpsMeters += meters;
+                if (openTrip == null) return;
+                // Count the whole track, including any driving around after arrival while the timer runs on.
+                openTrip.gpsMeters += meters;
+                openTrip.lastSeen = now;
+                // Safety net when the Stop button is never tapped (e.g. the drive ended in the background).
+                if (openTrip.arrivedAt > 0 && now - openTrip.arrivedAt > MANUAL_STOP_MAX_MS) {
+                    overCap = true;
+                    capEnd = Math.max(openTrip.arrivedAt, openTrip.lastSeen);
+                }
             }
+            if (overCap) finishManualStop(capEnd, true);
         } catch (Throwable t) {
             Log.w(TAG, "onFix failed", t);
         }
@@ -969,6 +1025,141 @@ public final class TripHistoryPatch {
     private interface BackHandler {
         /** Returns true if the back press was handled inside the page. */
         boolean back();
+    }
+
+    // endregion
+
+    // region Stop-timer button
+
+    /**
+     * Shows a floating "Stop" chip over the app once Waze reports arrival, so the user can end the drive's timer
+     * when they've actually finished. The chip is added to the current activity's content view and ticks up the
+     * elapsed time. If no activity is in the foreground (screen off / Android Auto), no chip is shown and the
+     * drive is closed by a safety fallback instead.
+     */
+    private static void showStopChip() {
+        mainHandler.post(() -> {
+            try {
+                removeStopChipNow();
+                Activity activity = currentActivity.get();
+                if (activity == null || activity.isFinishing()) return;
+                ViewGroup content = activity.findViewById(android.R.id.content);
+                if (content == null) return;
+
+                DisplayMetrics metrics = activity.getResources().getDisplayMetrics();
+                int padH = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 22, metrics));
+                int padV = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, metrics));
+                int bottom = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 110, metrics));
+
+                final TextView chip = new TextView(activity);
+                chip.setTextColor(Color.WHITE);
+                chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+                chip.setTypeface(Typeface.DEFAULT_BOLD);
+                chip.setPadding(padH, padV, padH, padV);
+                GradientDrawable background = new GradientDrawable();
+                background.setColor(ACCENT);
+                background.setCornerRadius(padV * 4f);
+                chip.setBackground(background);
+                chip.setElevation(padV);
+
+                FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                        Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+                params.bottomMargin = bottom;
+                chip.setLayoutParams(params);
+                chip.setOnClickListener(v -> stopTimerNow());
+
+                content.addView(chip);
+                stopChipView = chip;
+
+                chipRefresh = new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            long start, arrivedAt, lastSeen;
+                            synchronized (lock) {
+                                if (openTrip == null) {
+                                    removeStopChipNow();
+                                    return;
+                                }
+                                start = openTrip.start;
+                                arrivedAt = openTrip.arrivedAt;
+                                lastSeen = openTrip.lastSeen;
+                            }
+                            chip.setText("Timing " + formatDuration(System.currentTimeMillis() - start)
+                                    + " · tap to stop");
+                            if (arrivedAt > 0 && System.currentTimeMillis() - arrivedAt > MANUAL_STOP_MAX_MS) {
+                                finishManualStop(Math.max(arrivedAt, lastSeen), true);
+                                return;
+                            }
+                            mainHandler.postDelayed(this, 30_000);
+                        } catch (Throwable t) {
+                            Log.w(TAG, "Stop-timer chip refresh failed", t);
+                        }
+                    }
+                };
+                chipRefresh.run();
+            } catch (Throwable t) {
+                Log.w(TAG, "Could not show the stop-timer button", t);
+            }
+        });
+    }
+
+    /** The user tapped Stop: the drive ends now. */
+    private static void stopTimerNow() {
+        finishManualStop(System.currentTimeMillis(), false);
+    }
+
+    /** Closes the drive in progress at [end], removes the chip and stops GPS. Safe to call more than once. */
+    private static void finishManualStop(long end, boolean estimated) {
+        try {
+            OpenTrip open;
+            synchronized (lock) {
+                if (openTrip == null) {
+                    removeStopChip();
+                    return;
+                }
+                open = openTrip;
+                openTrip = null;
+                finishTrip(open, Math.max(end, open.start), estimated);
+            }
+            stopGps();
+            removeStopChip();
+            final long elapsed = Math.max(end, open.start) - open.start;
+            Activity activity = currentActivity.get();
+            if (activity != null && !estimated) {
+                mainHandler.post(() -> {
+                    try {
+                        Toast.makeText(activity, "Trip timer stopped · " + formatDuration(elapsed),
+                                Toast.LENGTH_SHORT).show();
+                    } catch (Throwable ignored) {
+                    }
+                });
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Could not stop the trip timer", t);
+        }
+    }
+
+    private static void removeStopChip() {
+        mainHandler.post(TripHistoryPatch::removeStopChipNow);
+    }
+
+    /** Must run on the main thread. */
+    private static void removeStopChipNow() {
+        try {
+            if (chipRefresh != null) {
+                mainHandler.removeCallbacks(chipRefresh);
+                chipRefresh = null;
+            }
+            View chip = stopChipView;
+            stopChipView = null;
+            if (chip != null && chip.getParent() instanceof ViewGroup) {
+                ((ViewGroup) chip.getParent()).removeView(chip);
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "Could not remove the stop-timer button", t);
+        }
     }
 
     // endregion
