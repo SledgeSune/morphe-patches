@@ -25,11 +25,9 @@ object Constants {
         apkFileType = ApkFileType.APKM,
         appIconColor = 0x33CCFF,
         targets = listOf(
-            // Stable release. Shares the same obfuscation mapping as the 5.27.4.900 beta the patches were
-            // developed against (consecutive build codes 1030748/1030749); every fingerprint verified identical.
+            // Stable release; every fingerprint verified against this build. (The beta 5.27.4.900 it was first
+            // developed on shared the same obfuscation mapping, but is no longer listed.)
             AppTarget(version = "5.27.0.1"),
-            // The beta the patches were originally developed against.
-            AppTarget(version = "5.27.4.900"),
             AppTarget(version = null, isExperimental = true),
         )
     )
