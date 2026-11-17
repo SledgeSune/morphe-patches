@@ -1,3 +1,9 @@
+## [1.5.0-dev.1](https://github.com/SledgeSune/morphe-patches/compare/v1.4.0...v1.5.0-dev.1) (2026-11-17)
+
+### ✨ New Features
+
+* **Waze:** Add a manual stop button for the trip timer ([28767a9](https://github.com/SledgeSune/morphe-patches/commit/28767a9746a0ba2afb03ac98a3c610a44af0054b))
+
 ## [1.4.0](https://github.com/SledgeSune/morphe-patches/compare/v1.3.0...v1.4.0) (2026-11-16)
 
 ### ✨ New Features

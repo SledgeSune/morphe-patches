@@ -21,7 +21,7 @@ Or add `https://github.com/SledgeSune/morphe-patches` as a patch source in Morph
 ## Patches
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.4.0](https://github.com/SledgeSune/morphe-patches/releases/tag/v1.4.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;11 patches total
+> **[v1.5.0-dev.1](https://github.com/SledgeSune/morphe-patches/releases/tag/v1.5.0-dev.1)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;11 patches total
 <details open>
 <summary>📦 CP&nbsp;&nbsp;•&nbsp;&nbsp;2 patches</summary>
 <br>
@@ -56,7 +56,7 @@ Or add `https://github.com/SledgeSune/morphe-patches` as a patch source in Morph
 | [Disable reroute auto-accept](#disable-reroute-auto-accept) | Removes the countdown from the "faster route found" prompt while driving, so the route only changes when you tap the button yourself. |  |
 | [Keep Waze alive](#keep-waze-alive) | Lets Waze stay open in the background longer before it closes itself (Waze's "background timeout", normally set by Waze's servers). | • Time in the background |
 | [Remove ads](#remove-ads) | Removes sponsored pins on the map, sponsored search results, the full-screen ad when stopped and promotional launch screens. |  |
-| [Trip history](#trip-history) | Records how long each drive took and how far you drove. Shows it next to each place under Recent in "Where to?", and lists all drives under "Trip history" in the side menu. |  |
+| [Trip history](#trip-history) | Records how long each drive took and how far you drove. Shows it next to each place under Recent in "Where to?", and lists all drives under "Trip history" in the side menu. With "Stop the timer myself" on, the drive's timer keeps running when Waze says you've arrived, and a button lets you stop it when you've actually finished. | • Stop the timer myself |
 
 </details>
 
