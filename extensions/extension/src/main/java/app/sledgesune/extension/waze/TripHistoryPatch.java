@@ -315,11 +315,15 @@ public final class TripHistoryPatch {
                     saveOpenTrip();
                     startGps();
                 } else if (openTrip != null) {
-                    // With the manual-stop timer, Waze ending navigation after arrival does NOT end the drive:
-                    // the timer keeps running until the user taps Stop (or a safety fallback fires).
-                    if (manualStop() && openTrip.arrivedAt > 0) {
+                    // With the manual-stop timer, Waze ending navigation does NOT end the drive: the timer keeps
+                    // running until the user taps Stop (or a safety fallback fires). This is the reliable trigger
+                    // for the Stop button — the native arrival callback (onReachedDestinationJNI) can fire after
+                    // this, or not at all, so we don't wait for it.
+                    if (manualStop()) {
+                        if (openTrip.arrivedAt == 0) openTrip.arrivedAt = now; // The drive reached its end here.
                         openTrip.lastSeen = now;
                         saveOpenTrip();
+                        showStopChip();
                         return;
                     }
                     OpenTrip open = openTrip;
@@ -1049,7 +1053,8 @@ public final class TripHistoryPatch {
                 DisplayMetrics metrics = activity.getResources().getDisplayMetrics();
                 int padH = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 22, metrics));
                 int padV = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, metrics));
-                int bottom = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 110, metrics));
+                // Near the top: Waze's arrival screen is a bottom sheet, so a bottom chip would hide behind it.
+                int top = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 90, metrics));
 
                 final TextView chip = new TextView(activity);
                 chip.setTextColor(Color.WHITE);
@@ -1060,16 +1065,17 @@ public final class TripHistoryPatch {
                 background.setColor(ACCENT);
                 background.setCornerRadius(padV * 4f);
                 chip.setBackground(background);
-                chip.setElevation(padV);
+                chip.setElevation(padV * 2f);
 
                 FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-                        Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-                params.bottomMargin = bottom;
+                        Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+                params.topMargin = top;
                 chip.setLayoutParams(params);
                 chip.setOnClickListener(v -> stopTimerNow());
 
                 content.addView(chip);
+                chip.bringToFront();
                 stopChipView = chip;
 
                 chipRefresh = new Runnable() {
