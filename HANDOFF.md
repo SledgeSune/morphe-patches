@@ -15,7 +15,7 @@ Update this file at the end of every session (`morphe-handoff` skill).
 |---|---|
 | Repo | https://github.com/SledgeSune/morphe-patches (`dev` = work, `main` = releases) |
 | Local checkout | `C:\Programs\Claude\Morphe-Patches\morphe-patches` (template reference clone next to it) |
-| Latest release | Pre-release **v1.5.0-dev.1** (2026-11-17, Waze manual stop timer; untested on phone). Stable **v1.4.0** (2026-11-16), 11 patches (3 apps: Waze, Sync.ME, CP). v1.3.0 (2026-11-11), v1.0.0 (2026-11-08) |
+| Latest release | Pre-release **v1.5.0-dev.2** (2026-11-17, Waze manual stop timer + dropped the beta target; untested on phone). Stable **v1.4.0** (2026-11-16), 11 patches (3 apps: Waze, Sync.ME, CP). v1.3.0 (2026-11-11), v1.0.0 (2026-11-08) |
 | Add to Morphe | `https://morphe.software/add-source?github=SledgeSune/morphe-patches` |
 | Tested APKs | APKMirror `.apkm`: Waze **5.27.0.1** (stable, build 1030748) **and** 5.27.4.900 (beta, 1030749) — same obfuscation mapping, all fingerprints verified on both (in the parent folder). Sync.ME 4.71.2.1 (kept outside the repo). CP 2.3.0: single `.apk` ("antisplit") in the parent folder |
 | Tools | JDK 21 (Temurin), Android SDK + dexdump, jadx 1.5.6 (GUI jar only: `java -cp <jar> jadx.cli.JadxCLI`), Python 3.14, `gh` signed in as SledgeSune |
@@ -36,7 +36,7 @@ Obfuscated names are for the tested version only; fingerprints don't depend on t
 | **Keep navigation bar** (`navbar/`) | `AggressiveManager` (`Lzr;->a(Activity)V`, string `"is_enable_aggressive_mode_for_premium"`) → `return-void`. | Untested |
 | **Disable tracking** (`tracking/`) | `com.syncme.utils.analytics.Analytics` init/track/identify/userProperty/flush → no-op (init turns off Firebase + Facebook collection by reflection); `SingularAnalytics.initOrSchedule` and the Facebook initializer (`Lu86;->a(Application)`, fingerprint excludes `Lcom/facebook/`) → no-op. Crashlytics left on. | Untested |
 
-### Waze 5.27.4.900 — `patches/.../waze/`
+### Waze 5.27.0.1 — `patches/.../waze/`
 
 | Patch | Hook | Status |
 |---|---|---|
@@ -66,8 +66,8 @@ Compared with Forsigh/waze-patches (GPLv3, 2026-11-11): their patches only fake 
 3. Issues are still enabled on the repo although the owner offers no support.
 4. ~~Waze patches were built against a beta.~~ **Resolved 2026-11-16:** verified against stable 5.27.0.1 (build
    1030748), which shares the beta's exact obfuscation mapping (`ui/n/ae->c` 33 regs/5 ins, `search/e/s`,
-   `search/h/au` all identical) — every patch matches unchanged. `COMPATIBILITY_WAZE` now lists 5.27.0.1 first,
-   then 5.27.4.900, then experimental. Still untested on a phone.
+   `search/h/au` all identical) — every patch matches unchanged. `COMPATIBILITY_WAZE` lists 5.27.0.1 and the
+   experimental target; the 5.27.4.900 beta was dropped from the list on 2026-11-17 (v1.5.0-dev.2). Still untested on a phone.
 
 ## Ideas not started
 
@@ -77,6 +77,9 @@ Compared with Forsigh/waze-patches (GPLv3, 2026-11-11): their patches only fake 
 
 ## Session log
 
+- **2026-11-17** — Owner: "remove beta support". Dropped the Waze 5.27.4.900 beta `AppTarget` from
+  `COMPATIBILITY_WAZE` (stable 5.27.0.1 + experimental remain). Shipped as **pre-release v1.5.0-dev.2** off `dev`
+  (feature + this fix, `main` still v1.4.0).
 - **2026-11-17** — Owner: Waze ends the drive as soon as it thinks you've arrived, cutting the timer short. They
   wanted a button to stop the timer by hand instead of fighting Waze's native arrival. Added a **manual stop timer**
   to Trip history (option `manualStop`, default on): keep the drive open past arrival, show a floating Stop chip,
